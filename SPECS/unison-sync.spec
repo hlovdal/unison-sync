@@ -1,47 +1,24 @@
 
-# These is the exact upstream version we are packaging
-%global ver_maj 2
-%global ver_min 51
-%global ver_patch 2
-
-# All Unison versions sharing ver_compat are compatible
-# Examples are 2.13.15 and 2.13.16 -> ver_compat == 2.13
-# In older versions, even patch levels were not compatible
-# Examples are ver_compat==2.9.0 and ver_compat==2.9.1
-%global ver_compat      %{ver_maj}.%{ver_min}
-%global ver_compat_name %{ver_maj}%{ver_min}
-%global ver_noncompat   .%{ver_patch}
-
-# ver_priority is the first component of ver_compat, catenated with the second
-# component of ver_compat zero-filled to 3 digits, catenated with a final
-# zero-filled 3-digit field. The final field contains the 3rd component of
-# ver_compat (if there is one), otherwise 0.
-%global ver_priority %(printf %%d%%03d%%03d `echo %{ver_compat}|sed 's/\\./ /g'`)
-
-# Is this package the unisonNNN package with the highest ${ver_compat}
-# available in this Fedora branch/release? If so, we provide unison.
-%global provide_unison 1
-
 # icons root directory
 %global iconsdir %{_datadir}/icons
 
-Name:      unison%{ver_compat_name}
-Version:   %{ver_compat}%{ver_noncompat}
-Release:   8.8
+Name:      unison-sync
+Version:   2.52.1
+Release:   1%{?dist}
 
 Summary:   Multi-master File synchronization tool
 
 License:   GPLv3+
 URL:       http://www.cis.upenn.edu/~bcpierce/unison
 Source0:   https://github.com/bcpierce00/unison/archive/v%{version}.tar.gz
-Source1:   http://www.cis.upenn.edu/~bcpierce/unison/download/releases/unison-%{ver_compat}.2/unison-manual.html
+Source1:   http://www.cis.upenn.edu/~bcpierce/unison/download/releases/unison-%{version}/unison-manual.html
 Source2:   unison.appdata.xml
 
 # can't make this noarch (rpmbuild fails about unpackaged debug files)
 # BuildArch:     noarch
 ExcludeArch:   sparc64 s390 s390x
 
-BuildRequires: ctags-etags
+BuildRequires: ctags
 BuildRequires: libappstream-glib
 BuildRequires: ocaml
 
@@ -57,11 +34,6 @@ different hosts (or different locations on the same host), modified
 separately, and then brought up to date by propagating the changes
 in each replica to the other.
 
-Note that this package contains Unison version %{ver_compat}, and
-will never be upgraded to a different major version. Other packages
-exist if you require a different major version.
-
-
 %package gtk
 
 Summary:   Multi-master File synchronization tool - gtk interface
@@ -73,13 +45,6 @@ BuildRequires: desktop-file-utils
 Requires: %name = %{version}-%{release}
 
 Provides:   %{name}-ui = %{version}-%{release}
-
-# Enforce the switch from unison to unisonN.NN
-Obsoletes: unison < 2.27.57-3
-# Let users just install "unison" if they want
-%if 0%{?provide_unison}
-Provides: unison = %{version}-%{release}
-%endif
 
 %description gtk
 This package provides the graphical version of unison with gtk2 interface.
@@ -103,8 +68,8 @@ This package provides the textual version of unison without graphical interface.
 cat > %{name}.desktop <<EOF
 [Desktop Entry]
 Type=Application
-Exec=unison-gtk-%{ver_compat}
-Name=Unison File Synchronizer (version %{ver_compat})
+Exec=unison-gtk
+Name=Unison File Synchronizer (version %{version})
 GenericName=File Synchronizer
 Comment=Multi-master File synchronization tool
 Terminal=false
@@ -132,13 +97,9 @@ mv src/unison src/unison-text
 %install
 mkdir -p %{buildroot}%{_bindir}
 
-cp -a src/unison-gtk %{buildroot}%{_bindir}/unison-gtk-%{ver_compat}
-# symlink for compatibility
-ln -s %{_bindir}/unison-gtk-%{ver_compat} %{buildroot}%{_bindir}/unison-%{ver_compat}
-
-cp -a src/unison-text %{buildroot}%{_bindir}/unison-text-%{ver_compat}
-
-cp -a src/unison-fsmonitor %{buildroot}%{_bindir}/unison-fsmonitor-%{ver_compat}
+cp -a src/unison-gtk %{buildroot}%{_bindir}/unison-gtk
+cp -a src/unison-text %{buildroot}%{_bindir}/unison-text
+cp -a src/unison-fsmonitor %{buildroot}%{_bindir}/unison-fsmonitor
 
 # Install the various icons according to the "Icon Theme Specification"
 # https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html
@@ -159,30 +120,15 @@ mkdir -p %{buildroot}%{_datadir}/metainfo
 cp %{SOURCE2} %{buildroot}%{_datadir}/metainfo/%{name}.appdata.xml
 appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/*.appdata.xml
 
-# create/own alternatives target
-touch %{buildroot}%{_bindir}/unison
-
 %post gtk
 # https://fedoraproject.org/wiki/EPEL:Packaging#Icon_Cache
 /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
 
 %posttrans gtk
-alternatives \
-  --install \
-  %{_bindir}/unison \
-  unison \
-  %{_bindir}/unison-%{ver_compat} \
-  %{ver_priority}
-
 # https://fedoraproject.org/wiki/EPEL:Packaging#Icon_Cache
 /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
 %postun gtk
-if [ $1 -eq 0 ]; then
-  alternatives --remove unison \
-    %{_bindir}/unison-%{ver_compat}
-fi
-
 # https://fedoraproject.org/wiki/EPEL:Packaging#Icon_Cache
 if [ $1 -eq 0 ] ; then
     /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null
@@ -190,43 +136,30 @@ if [ $1 -eq 0 ] ; then
 fi
 
 
-%posttrans text
-alternatives \
-  --install \
-  %{_bindir}/unison \
-  unison \
-  %{_bindir}/unison-text-%{ver_compat} \
-  %{ver_priority}
-
-
-%postun text
-if [ $1 -eq 0 ]; then
-  alternatives --remove unison \
-    %{_bindir}/unison-text-%{ver_compat}
-fi
-
-
 %files
-%doc src/NEWS src/README unison-manual.html
+%doc README.md NEWS.md src/README unison-manual.html
 %license src/COPYING
-%{_bindir}/unison-fsmonitor-%{ver_compat}
+%{_bindir}/unison-fsmonitor
 
 
 %files gtk
-%ghost %{_bindir}/unison
-%{_bindir}/unison-gtk-%{ver_compat}
-%{_bindir}/unison-%{ver_compat}
+%{_bindir}/unison-gtk
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/metainfo/%{name}.appdata.xml
 %{iconsdir}/*
 
 
 %files text
-%ghost %{_bindir}/unison
-%{_bindir}/unison-text-%{ver_compat}
+%{_bindir}/unison-text
 
 
 %changelog
+* Mon May 30 2022 Håkon Løvdal <kode@denkule.no> - 2.52.1-1
+- Update to version 2.52.1.
+- Rename package and drop all the mess with embedding version number into
+  package name (this should no longer be important after version 2.52.0 which
+  finally uses a compiler independent marshalling format).
+
 * Fri Jan 25 2019 Christian Affolter <c.affolter@purplehaze.ch> - 2.51.2-2
 - Include unison-fsmonitor (the Unison filesystem monitor)
 

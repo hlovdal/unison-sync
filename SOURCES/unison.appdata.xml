@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2018 David Personette <dperson@gmail.com> -->
 <component type="desktop">
-  <id>unison251.desktop</id>
+  <id>unison.desktop</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
-  <name>Unison251</name>
+  <name>Unison</name>
   <summary>Multi-master File synchronization tool - gtk interface</summary>
   <description>
     <p>
@@ -13,11 +13,6 @@
       different hosts (or different locations on the same host), modified
       separately, and then brought up to date by propagating the changes
       in each replica to the other.
-    </p>
-    <p>
-      Note that this package contains Unison version 2.48, and
-      will never be upgraded to a different major version. Other packages
-      exist if you require a different major version.
     </p>
   </description>
   <screenshots>
