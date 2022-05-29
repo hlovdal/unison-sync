@@ -1,8 +1,8 @@
 
 # These is the exact upstream version we are packaging
 %global ver_maj 2
-%global ver_min 40
-%global ver_patch 128
+%global ver_min 51
+%global ver_patch 2
 
 # All Unison versions sharing ver_compat are compatible
 # Examples are 2.13.15 and 2.13.16 -> ver_compat == 2.13
@@ -22,28 +22,27 @@
 # available in this Fedora branch/release? If so, we provide unison.
 %global provide_unison 1
 
+# icons root directory
+%global iconsdir %{_datadir}/icons
+
 Name:      unison%{ver_compat_name}
 Version:   %{ver_compat}%{ver_noncompat}
-Release:   5%{?dist}
+Release:   8.8
 
 Summary:   Multi-master File synchronization tool
 
-Group:     Applications/File
 License:   GPLv3+
 URL:       http://www.cis.upenn.edu/~bcpierce/unison
-Source0:   http://www.cis.upenn.edu/~bcpierce/unison/download/releases/unison-%{version}/unison-%{version}.tar.gz
-Source1:   unison.png
-Source2:   http://www.cis.upenn.edu/~bcpierce/unison/download/releases/unison-%{ver_compat}%{ver_noncompat}/unison-%{ver_compat}%{ver_noncompat}-manual.html
+Source0:   https://github.com/bcpierce00/unison/archive/v%{version}.tar.gz
+Source1:   http://www.cis.upenn.edu/~bcpierce/unison/download/releases/unison-%{ver_compat}.2/unison-manual.html
+Source2:   unison.appdata.xml
 
 # can't make this noarch (rpmbuild fails about unpackaged debug files)
 # BuildArch:     noarch
 ExcludeArch:   sparc64 s390 s390x
 
-# ppc ocaml deps are not all available for el7
-%if 0%{?el7}
-ExcludeArch:   ppc64
-%endif
-
+BuildRequires: ctags-etags
+BuildRequires: libappstream-glib
 BuildRequires: ocaml
 
 Requires:   %{name}-ui = %{version}-%{release}
@@ -115,7 +114,7 @@ Categories=Utility;
 EOF
 
 #additional documentation
-cp -a %{SOURCE2} unison-manual.html
+cp -a %{SOURCE1} .
 
 
 %build
@@ -124,30 +123,48 @@ unset MAKEFLAGS
 
 # we compile 2 versions: gtk2 ui and text ui
 make NATIVE=true UISTYLE=gtk2 THREADS=true
-mv unison unison-gtk
+mv src/unison src/unison-gtk
 
 make NATIVE=true UISTYLE=text THREADS=true
-mv unison unison-text
+mv src/unison src/unison-text
 
 
 %install
 mkdir -p %{buildroot}%{_bindir}
 
-cp -a unison-gtk %{buildroot}%{_bindir}/unison-gtk-%{ver_compat}
+cp -a src/unison-gtk %{buildroot}%{_bindir}/unison-gtk-%{ver_compat}
 # symlink for compatibility
 ln -s %{_bindir}/unison-gtk-%{ver_compat} %{buildroot}%{_bindir}/unison-%{ver_compat}
 
-cp -a unison-text %{buildroot}%{_bindir}/unison-text-%{ver_compat}
+cp -a src/unison-text %{buildroot}%{_bindir}/unison-text-%{ver_compat}
 
-mkdir -p %{buildroot}%{_datadir}/pixmaps
-cp -a %{SOURCE1} %{buildroot}%{_datadir}/pixmaps/%{name}.png
+cp -a src/unison-fsmonitor %{buildroot}%{_bindir}/unison-fsmonitor-%{ver_compat}
 
-desktop-file-install --dir %{buildroot}%{_datadir}/applications \
-    %{name}.desktop
+# Install the various icons according to the "Icon Theme Specification"
+# https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html
+for size in 16 24 32 48 256; do
+    format="${size}x${size}"
+    install -d %{buildroot}%{iconsdir}/hicolor/${format}/apps
+    install icons/U.${format}x16m.png \
+            %{buildroot}%{iconsdir}/hicolor/${format}/apps/%{name}.png
+done
+
+install -d %{buildroot}%{iconsdir}/hicolor/scalable/apps
+install icons/U.svg \
+        %{buildroot}%{iconsdir}/hicolor/scalable/apps/%{name}.svg
+
+desktop-file-install --dir %{buildroot}%{_datadir}/applications %{name}.desktop
+
+mkdir -p %{buildroot}%{_datadir}/metainfo
+cp %{SOURCE2} %{buildroot}%{_datadir}/metainfo/%{name}.appdata.xml
+appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/*.appdata.xml
 
 # create/own alternatives target
 touch %{buildroot}%{_bindir}/unison
 
+%post gtk
+# https://fedoraproject.org/wiki/EPEL:Packaging#Icon_Cache
+/bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
 
 %posttrans gtk
 alternatives \
@@ -157,10 +174,19 @@ alternatives \
   %{_bindir}/unison-%{ver_compat} \
   %{ver_priority}
 
+# https://fedoraproject.org/wiki/EPEL:Packaging#Icon_Cache
+/usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+
 %postun gtk
 if [ $1 -eq 0 ]; then
   alternatives --remove unison \
     %{_bindir}/unison-%{ver_compat}
+fi
+
+# https://fedoraproject.org/wiki/EPEL:Packaging#Icon_Cache
+if [ $1 -eq 0 ] ; then
+    /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null
+    /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 fi
 
 
@@ -181,7 +207,9 @@ fi
 
 
 %files
-%doc COPYING NEWS README unison-manual.html
+%doc src/NEWS src/README unison-manual.html
+%license src/COPYING
+%{_bindir}/unison-fsmonitor-%{ver_compat}
 
 
 %files gtk
@@ -189,7 +217,8 @@ fi
 %{_bindir}/unison-gtk-%{ver_compat}
 %{_bindir}/unison-%{ver_compat}
 %{_datadir}/applications/%{name}.desktop
-%{_datadir}/pixmaps/%{name}.png
+%{_datadir}/metainfo/%{name}.appdata.xml
+%{iconsdir}/*
 
 
 %files text
@@ -198,9 +227,34 @@ fi
 
 
 %changelog
-* Thu Sep 22 2016 Jason Taylor <jtfas90@gmail.com> - 2.40.128-5
-- added ppc excludearch for epel builds
-- initial epel7 release
+* Fri Jan 25 2019 Christian Affolter <c.affolter@purplehaze.ch> - 2.51.2-2
+- Include unison-fsmonitor (the Unison filesystem monitor)
+
+* Tue Jan 15 2019 Christian Affolter <c.affolter@purplehaze.ch - 2.51.2-1
+- Update to latest stable upstream release
+- Change upstream download source URL to GitHub
+- Install icons from upstream tarball in different sizes and formats
+
+* Mon Feb 12 2018 David Personette <dperson@gmail.com> - 2.48.15v4-2
+- Apply suggested changes from bug #1544239
+
+* Sat Feb 10 2018 David Personette <dperson@gmail.com> - 2.48.15v4-1
+- Update to latest stable upstream release
+
+* Thu Aug 03 2017 Fedora Release Engineering <releng@fedoraproject.org> - 2.40.128-9
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
+
+* Thu Jul 27 2017 Fedora Release Engineering <releng@fedoraproject.org> - 2.40.128-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
+
+* Tue Feb 14 2017 Richard W.M. Jones <rjones@redhat.com> - 2.40.128-7
+- Small fix for compiling against OCaml 4.04 (RHBZ#1392152).
+
+* Sat Feb 11 2017 Fedora Release Engineering <releng@fedoraproject.org> - 2.40.128-6
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_26_Mass_Rebuild
+
+* Sat Nov 05 2016 Richard W.M. Jones <rjones@redhat.com> - 2.40.128-5
+- Rebuild for OCaml 4.04.0.
 
 * Fri Feb 05 2016 Fedora Release Engineering <releng@fedoraproject.org> - 2.40.128-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
@@ -356,4 +410,3 @@ fi
 
 * Fri Oct 31 2003 Gerard Milmeister <gemi@bluewin.ch> - 0:2.9.70-0.fdr.1
 - First Fedora release
-
