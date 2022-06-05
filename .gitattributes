@@ -1,0 +1,9 @@
+*	text eol=lf
+
+*.sh	diff=bash
+*.md	diff=markdown
+
+*.png	binary
+*.jpg	binary
+*.pdf	binary
+
