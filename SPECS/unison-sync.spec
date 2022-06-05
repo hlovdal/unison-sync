@@ -13,6 +13,7 @@ URL:       http://www.cis.upenn.edu/~bcpierce/unison
 Source0:   https://github.com/bcpierce00/unison/archive/v%{version}.tar.gz
 Source1:   http://www.cis.upenn.edu/~bcpierce/unison/download/releases/unison-%{version}/unison-manual.html
 Source2:   unison.appdata.xml
+Patch0:    ocamlopt-cflags-workaround.patch
 
 Conflicts: unison251-text unison251-gtk
 Conflicts: unison240-text unison240-gtk
@@ -69,6 +70,7 @@ This package provides the textual version of unison without graphical interface.
 
 %prep
 %setup -q -n unison-%{version}
+%patch0 -p1
 
 cat > %{name}.desktop <<EOF
 [Desktop Entry]
@@ -90,6 +92,8 @@ cp -a %{SOURCE1} .
 %build
 # MAKEFLAGS=-j<N> breaks the build.
 unset MAKEFLAGS
+OCAML_LINKING_CFLAGS=`echo $CFLAGS | fmt -1 | grep '^-O' || true`
+export OCAML_LINKING_CFLAGS
 
 # we compile 2 versions: gtk2 ui and text ui
 make NATIVE=true UISTYLE=gtk2 THREADS=true
