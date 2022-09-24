@@ -1,4 +1,12 @@
+.*.swp
+
 BUILD/
 RPMS/
-SRPMS/
-SOURCES/
+
+SOURCES/unison-manual.html
+SOURCES/v2.*.*.tar.gz
+
+SRPMS/*
+!SRPMS/.gitkeep
+
+.rpmmacros
