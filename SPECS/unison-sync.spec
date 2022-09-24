@@ -14,6 +14,11 @@ Source0:   https://github.com/bcpierce00/unison/archive/v%{version}.tar.gz
 Source1:   http://www.cis.upenn.edu/~bcpierce/unison/download/releases/unison-%{version}/unison-manual.html
 Source2:   unison.appdata.xml
 
+Conflicts: unison251-text unison251-gtk
+Conflicts: unison240-text unison240-gtk
+Conflicts: unison277
+Conflicts: unison
+
 # can't make this noarch (rpmbuild fails about unpackaged debug files)
 # BuildArch:     noarch
 ExcludeArch:   sparc64 s390 s390x
