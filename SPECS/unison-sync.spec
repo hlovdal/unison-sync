@@ -1,10 +1,13 @@
+# ver_priority is the version split in three and zero-filled to 3 digits for
+# second and third.
+%global ver_priority %(printf %%d%%03d%%03d `echo %{version}|sed 's/\\./ /g'`)
 
 # icons root directory
 %global iconsdir %{_datadir}/icons
 
 Name:      unison-sync
 Version:   2.52.1
-Release:   1%{?dist}
+Release:   2%{?dist}
 
 Summary:   Multi-master File synchronization tool
 
@@ -129,19 +132,50 @@ mkdir -p %{buildroot}%{_datadir}/metainfo
 cp %{SOURCE2} %{buildroot}%{_datadir}/metainfo/%{name}.appdata.xml
 appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/*.appdata.xml
 
+# create/own alternatives target
+touch %{buildroot}%{_bindir}/unison
+
 %post gtk
 # https://fedoraproject.org/wiki/EPEL:Packaging#Icon_Cache
 /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
 
 %posttrans gtk
+alternatives \
+  --install \
+  %{_bindir}/unison \
+  unison \
+  %{_bindir}/unison-gtk \
+  %{ver_priority}
+
 # https://fedoraproject.org/wiki/EPEL:Packaging#Icon_Cache
 /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
 %postun gtk
+if [ $1 -eq 0 ]; then
+  alternatives --remove unison \
+    %{_bindir}/unison
+fi
+
 # https://fedoraproject.org/wiki/EPEL:Packaging#Icon_Cache
 if [ $1 -eq 0 ] ; then
     /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null
     /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+fi
+
+
+%posttrans text
+alternatives \
+  --install \
+  %{_bindir}/unison \
+  unison \
+  %{_bindir}/unison-text \
+  %{ver_priority}
+
+
+%postun text
+if [ $1 -eq 0 ]; then
+  alternatives --remove unison \
+    %{_bindir}/unison-text-%{ver_compat}
 fi
 
 
@@ -152,6 +186,7 @@ fi
 
 
 %files gtk
+%ghost %{_bindir}/unison
 %{_bindir}/unison-gtk
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/metainfo/%{name}.appdata.xml
@@ -159,10 +194,14 @@ fi
 
 
 %files text
+%ghost %{_bindir}/unison
 %{_bindir}/unison-text
 
 
 %changelog
+* Mon Oct 10 2022 Håkon Løvdal <kode@denkule.no> - 2.52.1-2
+- Re-add unison binary alternative.
+
 * Mon May 30 2022 Håkon Løvdal <kode@denkule.no> - 2.52.1-1
 - Update to version 2.52.1.
 - Rename package and drop all the mess with embedding version number into
