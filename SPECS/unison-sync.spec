@@ -7,7 +7,7 @@
 
 Name:      unison-sync
 Version:   2.52.1
-Release:   2%{?dist}
+Release:   3%{?dist}
 
 Summary:   Multi-master File synchronization tool
 
@@ -49,6 +49,8 @@ Summary:   Multi-master File synchronization tool - gtk interface
 
 BuildRequires: ocaml-lablgtk-devel
 BuildRequires: gtk2-devel
+BuildRequires: glib2-devel
+BuildRequires: pango-devel
 BuildRequires: desktop-file-utils
 
 Requires: %name = %{version}-%{release}
@@ -199,6 +201,9 @@ fi
 
 
 %changelog
+* Wed Oct 12 2022 Håkon Løvdal <kode@denkule.no> - 2.52.1-3
+- Add missing build requirements for gtk package.
+
 * Mon Oct 10 2022 Håkon Løvdal <kode@denkule.no> - 2.52.1-2
 - Re-add unison binary alternative.
 
