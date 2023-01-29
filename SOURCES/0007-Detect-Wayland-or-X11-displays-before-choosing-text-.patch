@@ -1,0 +1,46 @@
+From 876959933cbe572bfd267ba30e0b05f13318118f Mon Sep 17 00:00:00 2001
+From: mxmgh <mxmgh@mt2015.com>
+Date: Thu, 8 Dec 2022 17:29:08 +0000
+Subject: [PATCH 7/7] Detect Wayland or X11 displays before choosing text UI
+ (#835)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+* Detect Wayland or X11 displays before choosing text UI
+
+Otherwise, Unison will not start its graphical interface when
+running in a pure-Wayland environment.
+
+* Fix, simplify display environ variable comparison
+
+Co-authored-by: Tõivo Leedjärv <69477666+tleedjarv@users.noreply.github.com>
+
+Co-authored-by: Tõivo Leedjärv <69477666+tleedjarv@users.noreply.github.com>
+---
+ src/uigtk3.ml | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/uigtk3.ml b/src/uigtk3.ml
+index 14fee34..09bcc83 100644
+--- a/src/uigtk3.ml
++++ b/src/uigtk3.ml
+@@ -4488,11 +4488,13 @@ let start = function
+       let displayAvailable =
+         Util.osType = `Win32
+           ||
+-        try System.getenv "DISPLAY" <> "" with Not_found -> false
++        (try System.getenv "DISPLAY" <> "" with Not_found -> false)
++          ||
++        (try System.getenv "WAYLAND_DISPLAY" <> "" with Not_found -> false)
+       in
+       if displayAvailable then Private.start Uicommon.Graphic
+       else begin
+-        Util.warn "DISPLAY not set or empty; starting the Text UI\n";
++        Util.warn "DISPLAY and WAYLAND_DISPLAY not set or empty; starting the Text UI\n";
+         Uitext.Body.start Uicommon.Text
+       end
+ 
+-- 
+2.39.1
+

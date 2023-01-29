@@ -6,8 +6,8 @@
 %global iconsdir %{_datadir}/icons
 
 Name:      unison-sync
-Version:   2.52.1
-Release:   3%{?dist}
+Version:   2.53.0
+Release:   1%{?dist}
 
 Summary:   Multi-master File synchronization tool
 
@@ -16,7 +16,13 @@ URL:       http://www.cis.upenn.edu/~bcpierce/unison
 Source0:   https://github.com/bcpierce00/unison/archive/v%{version}.tar.gz
 Source1:   http://www.cis.upenn.edu/~bcpierce/unison/download/releases/unison-%{version}/unison-manual.html
 Source2:   unison.appdata.xml
-Patch0:    ocamlopt-cflags-workaround.patch
+Patch1:    0001-Fix-a-resource-leak.patch
+Patch2:    0002-Prevent-ssh-process-from-receiving-SIGINT.patch
+Patch3:    0003-Capture-all-error-output-from-forked-process.patch
+Patch4:    0004-Use-CFLAGS-properly.patch
+Patch5:    0005-Use-user-provided-CFLAGS-CPPFLAGS-LDFLAGS-LDLIBS.patch
+Patch6:    0006-Fix-another-resource-leak.patch
+Patch7:    0007-Detect-Wayland-or-X11-displays-before-choosing-text-.patch
 
 Conflicts: unison251-text unison251-gtk
 Conflicts: unison240-text unison240-gtk
@@ -30,6 +36,7 @@ ExcludeArch:   sparc64 s390 s390x
 BuildRequires: ctags
 BuildRequires: libappstream-glib
 BuildRequires: ocaml
+BuildRequires: ocaml-lablgtk3-devel ocaml-cairo-devel
 
 Requires:   %{name}-ui = %{version}-%{release}
 
@@ -75,7 +82,13 @@ This package provides the textual version of unison without graphical interface.
 
 %prep
 %setup -q -n unison-%{version}
-%patch0 -p1
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
+%patch5 -p1
+%patch6 -p1
+%patch7 -p1
 
 cat > %{name}.desktop <<EOF
 [Desktop Entry]
@@ -97,11 +110,9 @@ cp -a %{SOURCE1} .
 %build
 # MAKEFLAGS=-j<N> breaks the build.
 unset MAKEFLAGS
-OCAML_LINKING_CFLAGS=`echo $CFLAGS | fmt -1 | grep '^-O' || true`
-export OCAML_LINKING_CFLAGS
 
-# we compile 2 versions: gtk2 ui and text ui
-make NATIVE=true UISTYLE=gtk2 THREADS=true
+# we compile 2 versions: gtk3 ui and text ui
+make NATIVE=true UISTYLE=gtk3 THREADS=true
 mv src/unison src/unison-gtk
 
 make NATIVE=true UISTYLE=text THREADS=true
@@ -201,6 +212,9 @@ fi
 
 
 %changelog
+* Mon Jan 30 2023 Håkon Løvdal <kode@denkule.no> - 2.53.0-1
+- Update to version 2.53.0, including a few cherry-picks from master branch after v2.53.0..
+
 * Wed Oct 12 2022 Håkon Løvdal <kode@denkule.no> - 2.52.1-3
 - Add missing build requirements for gtk package.
 

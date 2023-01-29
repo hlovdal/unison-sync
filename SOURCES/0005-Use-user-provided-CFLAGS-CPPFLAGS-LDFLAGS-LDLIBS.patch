@@ -1,0 +1,63 @@
+From 8e1a35588e2d734ac9ce98f9427b3f648b29b49b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?T=C3=B5ivo=20Leedj=C3=A4rv?= <toivol@gmail.com>
+Date: Sun, 20 Nov 2022 16:15:53 +0100
+Subject: [PATCH 5/7] Use user-provided CFLAGS, CPPFLAGS, LDFLAGS, LDLIBS
+
+The OCaml compiler will pass these flags to the C compiler.
+---
+ src/Makefile.OCaml | 18 +++++++++++++++---
+ 1 file changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/src/Makefile.OCaml b/src/Makefile.OCaml
+index 88b4005..c2389c7 100644
+--- a/src/Makefile.OCaml
++++ b/src/Makefile.OCaml
+@@ -114,6 +114,19 @@ buildexecutable::
+ # Generate backtrace information for exceptions
+ CAMLFLAGS+=-g
+ 
++ifneq ($(strip $(CFLAGS)),)
++  CAMLCFLAGS+=-ccopt '$(CFLAGS)'
++endif
++ifneq ($(strip $(CPPFLAGS)),)
++  CAMLCFLAGS+=-ccopt '$(CPPFLAGS)'
++endif
++ifneq ($(strip $(LDFLAGS)),)
++  CAMLLDFLAGS+=-cclib '$(LDFLAGS)'
++endif
++ifneq ($(strip $(LDLIBS)),)
++  CLIBS+=-cclib '$(LDLIBS)'
++endif
++
+ INCLFLAGS=-I lwt -I ubase -I system
+ DEP_INCLFLAGS=-I lwt -I ubase -I system
+ CAMLFLAGS+=$(INCLFLAGS)
+@@ -401,7 +414,6 @@ ifeq ($(NATIVE), true)
+     CAMLFLAGS+=-p
+     CLIBS+=-cclib -ldl
+   endif
+-  CAMLLDFLAGS=
+ 
+   CAMLOBJS=$(subst .cmo,.cmx, $(subst .cma,.cmxa, $(OCAMLOBJS)))
+   CAMLLIBS=$(subst .cma,.cmxa, $(OCAMLLIBS))
+@@ -413,7 +425,7 @@ else
+   ifeq ($(DEBUGGING), true)
+     CAMLFLAGS+=-g
+   endif
+-  CAMLLDFLAGS=-custom
++  CAMLLDFLAGS+=-custom
+ 
+   CAMLOBJS=$(OCAMLOBJS)
+   CAMLLIBS=$(OCAMLLIBS)
+@@ -458,7 +470,7 @@ $(NAME)$(EXEC_EXT): $(CAMLOBJS) $(COBJS)
+ # files, so we have to use $(LD) to take care of COBJS.
+ $(NAME)-blob.o: $(CAMLOBJS) $(COBJS)
+ 	@echo Linking $@
+-	$(CAMLC) -dstartup -output-obj -verbose -cclib -keep_private_externs $(CAMLFLAGS) -o u-b.o $(CAMLCFLAGS) $(CAMLLIBS) $(CLIBS) $(CAMLOBJS)
++	$(CAMLC) -dstartup -output-obj -verbose -cclib -keep_private_externs $(CAMLFLAGS) -o u-b.o $(CAMLCFLAGS) $(CAMLLDFLAGS) $(CAMLLIBS) $(CLIBS) $(CAMLOBJS)
+ 	$(LD) -r -keep_private_externs -o $@ u-b.o $(COBJS)
+ 	$(RM) u-b.o
+ 
+-- 
+2.39.1
+

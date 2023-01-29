@@ -1,0 +1,34 @@
+From 39e7b64403df21426782422185f46e30328746db Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?T=C3=B5ivo=20Leedj=C3=A4rv?= <toivol@gmail.com>
+Date: Sun, 30 Oct 2022 18:19:43 +0100
+Subject: [PATCH 1/7] Fix a resource leak
+
+Close an open chanel when an exception is raised.
+---
+ src/system/system_generic.ml | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/src/system/system_generic.ml b/src/system/system_generic.ml
+index 55a63aa..f5088ee 100644
+--- a/src/system/system_generic.ml
++++ b/src/system/system_generic.ml
+@@ -122,9 +122,13 @@ let has_stderr ~info:_ = true
+ 
+ let fingerprint f =
+   let ic = open_in_bin f in
+-  let d = Digest.channel ic (-1) in
+-  close_in ic;
+-  d
++  try
++    let d = Digest.channel ic (-1) in
++    close_in ic;
++    d
++  with e ->
++    close_in_noerr ic;
++    raise e
+ 
+ (****)
+ 
+-- 
+2.39.1
+

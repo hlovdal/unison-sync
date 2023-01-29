@@ -1,0 +1,36 @@
+From f879dfb4fb85650fc3286d3e31ea11e0a937d4b3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?T=C3=B5ivo=20Leedj=C3=A4rv?= <toivol@gmail.com>
+Date: Tue, 22 Nov 2022 10:12:24 +0100
+Subject: [PATCH 6/7] Fix another resource leak
+
+Operator ';' has higher precedence than 'try'.
+---
+ src/remote.ml | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/src/remote.ml b/src/remote.ml
+index d1fc73d..2a24c28 100644
+--- a/src/remote.ml
++++ b/src/remote.ml
+@@ -2033,12 +2033,12 @@ let openConnectionEnd (i1,i2,o1,o2,s,fdopt,clroot,pid) =
+          Lwt.return ())
+ 
+ let openConnectionCancel (i1,i2,o1,o2,s,fdopt,clroot,pid) =
+-      try Unix.kill pid Sys.sigkill with Unix.Unix_error _ -> ();
+-      try Unix.close i1 with Unix.Unix_error _ -> ();
+-      try Lwt_unix.close i2 with Unix.Unix_error _ -> ();
+-      try Lwt_unix.close o1 with Unix.Unix_error _ -> ();
+-      try Unix.close o2 with Unix.Unix_error _ -> ();
+-      try Terminal.close_session pid with Unix.Unix_error _ -> ()
++  (try Unix.kill pid Sys.sigkill with Unix.Unix_error _ -> ());
++  (try Unix.close i1 with Unix.Unix_error _ -> ());
++  (try Lwt_unix.close i2 with Unix.Unix_error _ -> ());
++  (try Lwt_unix.close o1 with Unix.Unix_error _ -> ());
++  (try Unix.close o2 with Unix.Unix_error _ -> ());
++  (try Terminal.close_session pid with Unix.Unix_error _ -> ())
+ 
+ (****************************************************************************)
+ (*                     SERVER-MODE COMMAND PROCESSING LOOP                  *)
+-- 
+2.39.1
+

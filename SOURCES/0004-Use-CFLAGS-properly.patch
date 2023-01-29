@@ -1,0 +1,122 @@
+From 858b82e475a4ab18e991c0aeb4afc1f61617ca38 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?T=C3=B5ivo=20Leedj=C3=A4rv?= <toivol@gmail.com>
+Date: Sun, 20 Nov 2022 16:15:53 +0100
+Subject: [PATCH 4/7] Use CFLAGS properly
+
+Fix two issues with CFLAGS use in the Makefile.
+
+First, CFLAGS was only passed to compiler when linking (used more like
+LDFLAGS).
+
+Second, CFLAGS is intended for a C compiler and can't be passed directly
+to OCaml compiler. Ignore user-provided CFLAGS for now.
+---
+ src/Makefile.OCaml             | 14 +++++++-------
+ src/fsmonitor/linux/Makefile   |  2 +-
+ src/fsmonitor/solaris/Makefile |  2 +-
+ src/fsmonitor/windows/Makefile |  2 +-
+ 4 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/src/Makefile.OCaml b/src/Makefile.OCaml
+index e2841ee..88b4005 100644
+--- a/src/Makefile.OCaml
++++ b/src/Makefile.OCaml
+@@ -205,7 +205,7 @@ endif
+ 
+ MINOSXVERSION=10.6
+ ifeq ($(OSARCH),osx)
+-  CAMLFLAGS+=-ccopt -mmacosx-version-min=$(MINOSXVERSION)
++  CAMLCFLAGS+=-ccopt -mmacosx-version-min=$(MINOSXVERSION)
+   XCODEFLAGS=-arch $(shell uname -m)
+ endif
+ 
+@@ -294,7 +294,7 @@ ifeq ($(OSARCH), win32)
+   ifneq ($(UISTYLE), text)
+     ifneq ($(UI_WINOS), hybrid)
+       # COBJS+=winmain.c
+-      CFLAGS+=-ccopt "-link -Wl,--subsystem,windows"
++      CAMLLDFLAGS+=-cclib "-link -Wl,--subsystem,windows"
+     endif
+   endif
+ endif
+@@ -342,7 +342,7 @@ DEP_INCLFLAGS+=-I fsmonitor -I fsmonitor/linux -I fsmonitor/solaris -I fsmonitor
+ ### Static build setup
+ 
+ ifeq ($(STATIC), true)
+-  CFLAGS+=-cclib -static
++  CAMLLDFLAGS+=-cclib -static
+ endif
+ 
+ ####################################################################
+@@ -381,7 +381,7 @@ ifeq ($(DEBUGGING), false)
+     ifneq ($(OSARCH), osx)
+       # Strip the binary (does not work with MS compiler; might not work
+       # under OSX)
+-      CFLAGS+=-cclib -Wl,-s
++      CAMLLDFLAGS+=-cclib -Wl,-s
+     endif
+   endif
+ endif
+@@ -448,17 +448,17 @@ win32rc/unison.res.lib: win32rc/unison.rc win32rc/U.ico
+ 
+ %.o %.obj: %.c
+ 	@echo "$(CAMLC): $< ---> $@"
+-	$(CAMLC) $(CAMLFLAGS) -ccopt $(OUTPUT_SEL)$(CWD)/$@ -c $(CWD)/$<
++	$(CAMLC) $(CAMLFLAGS) $(CAMLCFLAGS) -ccopt $(OUTPUT_SEL)$(CWD)/$@ -c $(CWD)/$<
+ 
+ $(NAME)$(EXEC_EXT): $(CAMLOBJS) $(COBJS)
+ 	@echo Linking $@
+-	$(CAMLC) -verbose $(CAMLFLAGS) $(CAMLLDFLAGS) -o $@ $(CFLAGS) $(CAMLLIBS) $^ $(CLIBS)
++	$(CAMLC) -verbose $(CAMLFLAGS) $(CAMLLDFLAGS) -o $@ $(CAMLCFLAGS) $(CAMLLIBS) $^ $(CLIBS)
+ 
+ # Unfortunately -output-obj does not put .o files into the output, only .cmx
+ # files, so we have to use $(LD) to take care of COBJS.
+ $(NAME)-blob.o: $(CAMLOBJS) $(COBJS)
+ 	@echo Linking $@
+-	$(CAMLC) -dstartup -output-obj -verbose -cclib -keep_private_externs $(CAMLFLAGS) -o u-b.o $(CFLAGS) $(CAMLLIBS) $(CLIBS) $(CAMLOBJS)
++	$(CAMLC) -dstartup -output-obj -verbose -cclib -keep_private_externs $(CAMLFLAGS) -o u-b.o $(CAMLCFLAGS) $(CAMLLIBS) $(CLIBS) $(CAMLOBJS)
+ 	$(LD) -r -keep_private_externs -o $@ u-b.o $(COBJS)
+ 	$(RM) u-b.o
+ 
+diff --git a/src/fsmonitor/linux/Makefile b/src/fsmonitor/linux/Makefile
+index 557994b..223d82e 100644
+--- a/src/fsmonitor/linux/Makefile
++++ b/src/fsmonitor/linux/Makefile
+@@ -22,7 +22,7 @@ buildexecutable:: $(FSMONITOR)$(EXEC_EXT)
+ 
+ $(FSMONITOR)$(EXEC_EXT): $(FSMCAMLOBJS) $(FSMCOBJS)
+ 	@echo Linking $@
+-	$(CAMLC) -verbose $(CAMLFLAGS) $(CAMLLDFLAGS) -o $@ $(CFLAGS) $(FSMCAMLLIBS) $^ $(CLIBS)
++	$(CAMLC) -verbose $(CAMLFLAGS) $(CAMLLDFLAGS) -o $@ $(CAMLCFLAGS) $(FSMCAMLLIBS) $^ $(CLIBS)
+ 
+ clean::
+ 	rm -f $(DIR)/*.cm[iox] $(DIR)/*.o $(DIR)/*~
+diff --git a/src/fsmonitor/solaris/Makefile b/src/fsmonitor/solaris/Makefile
+index 7a91e01..ce66420 100644
+--- a/src/fsmonitor/solaris/Makefile
++++ b/src/fsmonitor/solaris/Makefile
+@@ -21,7 +21,7 @@ buildexecutable:: $(FSMONITOR)$(EXEC_EXT)
+ 
+ $(FSMONITOR)$(EXEC_EXT): $(FSMCAMLOBJS) $(FSMCOBJS)
+ 	@echo Linking $@
+-	$(CAMLC) -verbose $(CAMLFLAGS) $(CAMLLDFLAGS) -o $@ $(CFLAGS) $(FSMCAMLLIBS) $^ $(CLIBS)
++	$(CAMLC) -verbose $(CAMLFLAGS) $(CAMLLDFLAGS) -o $@ $(CAMLCFLAGS) $(FSMCAMLLIBS) $^ $(CLIBS)
+ 
+ clean::
+ 	rm -f $(DIR)/*.cm[iox] $(DIR)/*.o $(DIR)/*~
+diff --git a/src/fsmonitor/windows/Makefile b/src/fsmonitor/windows/Makefile
+index 87a6867..95d28b3 100644
+--- a/src/fsmonitor/windows/Makefile
++++ b/src/fsmonitor/windows/Makefile
+@@ -28,7 +28,7 @@ buildexecutable:: $(FSMONITOR)$(EXEC_EXT)
+ 
+ $(FSMONITOR)$(EXEC_EXT): $(FSMCAMLOBJS) $(FSMCOBJS)
+ 	@echo Linking $@
+-	$(CAMLC) -verbose $(CAMLFLAGS) $(CAMLLDFLAGS) -o $@ $(CFLAGS) $(FSMCAMLLIBS) $^ $(CLIBS)
++	$(CAMLC) -verbose $(CAMLFLAGS) $(CAMLLDFLAGS) -o $@ $(CAMLCFLAGS) $(FSMCAMLLIBS) $^ $(CLIBS)
+ 
+ clean::
+ 	rm -f $(DIR)/*.cm[iox] $(DIR)/*.{o,obj} $(DIR)/*~
+-- 
+2.39.1
+
