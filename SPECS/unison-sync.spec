@@ -1,13 +1,13 @@
-# ver_priority is the version split in three and zero-filled to 3 digits for
-# second and third.
-%global ver_priority %(printf %%d%%03d%%03d `echo %{version}|sed 's/\\./ /g'`)
-
 # icons root directory
 %global iconsdir %{_datadir}/icons
 
 Name:      unison-sync
 Version:   2.53.0
 Release:   1%{?dist}
+
+# ver_priority is the version split in three and zero-filled to 3 digits for
+# second and third.
+%global ver_priority %(printf %%d%%03d%%03d `echo %{version}|sed 's/\\./ /g'`)
 
 Summary:   Multi-master File synchronization tool
 
