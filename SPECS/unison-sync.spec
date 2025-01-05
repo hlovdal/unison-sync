@@ -3,7 +3,7 @@
 
 Name:      unison-sync
 Version:   2.53.0
-Release:   1%{?dist}
+Release:   2%{?dist}
 
 # ver_priority is the version split in three and zero-filled to 3 digits for
 # second and third.
@@ -212,6 +212,9 @@ fi
 
 
 %changelog
+* Mon Jan  6 2025 Håkon Løvdal <kode@denkule.no> - 2.53.0-2
+- Dummy update to trigger COPR to build for Fedora 40 & 41.
+
 * Mon Jan 30 2023 Håkon Løvdal <kode@denkule.no> - 2.53.0-1
 - Update to version 2.53.0, including a few cherry-picks from master branch after v2.53.0..
 
