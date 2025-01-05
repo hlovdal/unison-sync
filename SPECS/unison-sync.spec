@@ -82,13 +82,13 @@ This package provides the textual version of unison without graphical interface.
 
 %prep
 %setup -q -n unison-%{version}
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
-%patch4 -p1
-%patch5 -p1
-%patch6 -p1
-%patch7 -p1
+%patch -P 1 -p1
+%patch -P 2 -p1
+%patch -P 3 -p1
+%patch -P 4 -p1
+%patch -P 5 -p1
+%patch -P 6 -p1
+%patch -P 7 -p1
 
 cat > %{name}.desktop <<EOF
 [Desktop Entry]
